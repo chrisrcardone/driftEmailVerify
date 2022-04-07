@@ -55,10 +55,11 @@ app.listen(PORT, () => console.log(`Testing app listening on port ${PORT}!`))
 app.post('/messages', (req, res) => {
 
   // Confirming that the command message is `/verify` and not something else. You can also change this to adjust form `/verify` to whichever command you'd like
-  if(!req.body.data.body.includes("/verify")){
+  if(!req.body.data.body.includes("/verify")){    
+    // Ending request
+    return
     // This will not do anything in this process. Only used/seen when testing locally.
     res.send(`Not requesting verification.`)
-    return
   }
 
   // Saving Conversation ID and Generating Random 4 Digit Code
@@ -94,10 +95,10 @@ app.post('/messages', (req, res) => {
                   })
                   .catch(err => console.log(err))
                 
-                // This will not do anything in this process. Only used/seen when testing locally.
-                res.send(`No email collected, unable to run verification process.`)
                 // Ending process as verification is not possible without email
                 return
+                // This will not do anything in this process. Only used/seen when testing locally.
+                res.send(`No email collected, unable to run verification process.`)
                 
               }
 
