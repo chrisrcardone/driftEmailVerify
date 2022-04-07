@@ -26,7 +26,9 @@ let sendEmail = (recipientEmail, verCode) => {
       Body: {
         Html: {
           Charset: 'UTF-8',
-          Data: `Your verification code is ${verCode}. Please send this code to the support agent helping you to verify you own this email. - <Company Name>`,
+          Data: `<h1>Your verification code is ${verCode}.</h1> 
+          <p>Please send this code to the support agent helping you to verify you own this email.</p>
+          <p>- <Company Name></p>`,
         },
       },
       Subject: {
