@@ -54,3 +54,18 @@ To simulate what an agent using the shortcut `/verify` would look like and that 
     }
 }
 ```
+
+## What next?
+
+To help your reps move faster, enable them with saved replies that they send when asking if sending a verification code would be okay, you can do this with [Saved Replied in Drift](https://gethelp.drift.com/s/article/How-to-Create-and-Manage-Saved-Replies). Here are some examples:
+
+> To protect you and other customers, we'll need to verify your identity before moving forward. We do this by sending a verification code to your email. Would you like me to send the verification code?
+
+> I'll need to verify your identity before moving forward. Would it be okay if I send a verification code to your email?
+
+
+## FAQs
+| Question      | Answer |
+| ----------- | ----------- |
+| Can email verification be done through a playbook?      | No, API calls cannot occur during a playbook, it will hault the playbook flow. This must be triggered by a user.       |
+| What should we do if someone chats in after hours?   | This is meant for real-time verification. During after hours, you should use the [ticket creation skill](https://gethelp.drift.com/s/article/Bot-Skill-Article-Lookup-and-Ticket-Creation) and communicate with them via email.        |
