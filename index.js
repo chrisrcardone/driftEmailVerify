@@ -78,6 +78,28 @@ app.post('/messages', (req, res) => {
             .set(`Authorization`, `bearer ${TOKEN}`)
             .send()
             .end((error, contact) => {
+            
+              // Checking that there is an email on file that we can send verification code to
+              if(!contact.body.data.attributes.email){
+               
+                // Letting agent know when there is no email, thus, no verification can be performed
+                request.post(CONVERSATION_API_BASE + `/${convoId}/messages`)
+                  .set('Content-Type', 'application/json')
+                  .set(`Authorization`, `bearer ${TOKEN}`)
+                  .send({
+
+                    "type":"private_note",
+                    "body": `<p>Verification Process Could Not Be Performed: <b>No Email Collected</b></p><p>&nbsp;</p><p>Please collect the visitor's email and then run the /verify command again.</p>`
+
+                  })
+                  .catch(err => console.log(err))
+                
+                // This will not do anything in this process. Only used/seen when testing locally.
+                res.send(`No email collected, unable to run verification process.`)
+                // Ending process as verification is not possible without email
+                return
+                
+              }
 
               // Sending Email with Verification Code to Visitor
               sendEmail(contact.body.data.attributes.email, code)
