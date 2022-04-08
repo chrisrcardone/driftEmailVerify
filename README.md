@@ -16,14 +16,7 @@ This is free to use code that provides a template for leveraging [Drift's Open D
 - [ ] Locate/create a programmatic user in AWS for SES ([Guide](https://betterprogramming.pub/how-to-send-emails-with-node-js-using-amazon-ses-8ae38f6312e4#:~:text=Creating%20an%20AWS%20IAM%20user%20with%20SES%20permissions))
 - [ ] Create a Drift Developer App ([Guide Guide](https://devdocs.drift.com/docs/quick-start)) and keep your OAuth Access Token handy
 - [ ] Add the permissions `contact_read` and `conversation_write` to your Drift Developer App's scopes
-- [ ] Replace the following placeholders (you can command/control + F for these):
-  - [ ] `<Access Key>`
-  - [ ] `<Secret Access Key>`
-  - [ ] `<AWS Region>`
-  - [ ] `<FROM NAME>`
-  - [ ] `<FROM EMAIL>`
-  - [ ] `<Company Name>`
-  - [ ] `<Drift OAuth Access Token>`
+- [ ] Fill out values in `globalConfig`
 - [ ] Run `npm install` to download required modules
 - [ ] Test, test, test
 - [ ] Deploy code then input the hosted URL for this new Webhook Endpoint (should look like: api.yourdomain.com/messages) into your [Drift Developer App under Webhooks](https://devdocs.drift.com/docs/webhook-events-1) and subscribe to the webhook event `new_command_message`
