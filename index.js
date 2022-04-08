@@ -8,17 +8,17 @@ const AWS = require('aws-sdk');
 const globalConfig = {
   // Amazon SES Authentication Information, for help gathering these, follow this tutorial: https://betterprogramming.pub/how-to-send-emails-with-node-js-using-amazon-ses-8ae38f6312e4#525e
   amazonSes: {
-    accessKeyId: 'AKIAW5WSVS4K2MZLIHUY',
-    secretAccessKey: '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',
-    region: 'us-east-1'
+    accessKeyId: '',
+    secretAccessKey: '',
+    region: ''
   },
   emailSender: {
-    fromName: 'Expansion Goals',
-    fromEmail: 'support@chris-cardone.com'
+    fromName: 'Your Company',
+    fromEmail: 'support@yourcompany.com' // Must be a verified identity in your Amazon SES
   },
   // Need a Drift Token? Here's how to get one: https://devdocs.drift.com/docs/quick-start
   drift: {
-    oAuthAccessToken: 'Dzs5ysxDAOV82UmpJho2rjQlogf5GiML'
+    oAuthAccessToken: ''
   },
   messaging: {
     returnToConversationLink: 'Click here to jump right back into your conversation with our team.',
