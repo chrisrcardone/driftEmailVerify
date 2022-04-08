@@ -64,3 +64,37 @@ To help your reps move faster, enable them with saved replies that they send whe
 | What should we do if someone chats in after hours?   | This is meant for real-time verification. During after hours, you should use the [ticket creation skill](https://gethelp.drift.com/s/article/Bot-Skill-Article-Lookup-and-Ticket-Creation) and communicate with them via email.        |
 | How do I control what email the verification code is sent to? | We'll send the code to the email of the visitor, you can check and change this [in the sidebar](https://gethelp.drift.com/s/article/Conversation-View) manaually should your agents need to. |
 | Why should I host this myself? | Currently, there isn't a version of this in the app directory. Nevertheless, by self-hosting you mitigate the need to provide access to your Drift Account to any 3rd party providers. |
+
+# Customizations
+
+## Messaging Customizations
+
+*The message customizations outlined above are changable within `globalConfig.messaging`.*
+
+| Token | Description |
+| ----------- | ----------- |
+| `[EMAIL]` | The email of the visitor chatting via Drift |
+| `[CODE]` | The verification code sent to the visitors email |
+| `[SLASHCOMMAND]` | The slash command that this Nodejs Server is listening for to run this command, this is set under `globalConfig.command.slashCommand` |
+
+| Variable      | Description | Available Tokens |
+| ----------- | ----------- | ----------- |
+| `returnToConversationLink`      | This is the **hyperlink text** that appears within the email which will link them back to the page they began their conversation on and will launch open the Drift Widget with the conversation ready.       | None |
+| `verificationCodePreText`   | This is the messaging within the `<h1>` tag at the beginning of the verification email. (See below for an email outline)       | `[CODE]` |
+| `emailCta` | This is the messaging within the `<p>` tag that directly follows the `<h1>` with the verification code. (See below for an email outline) | None |
+| `autoReplyInChat` | This is the auto message sent **from the bot** to the visitor chatting with the agent to confirm the email has been sent. | `[EMAIL]` |
+| `emailSignature` | This is the last `<p>` tag of the verification email. | None |
+| `noEmailAgentFacingError` | This is the error message sent to the agent in the chat as a private note (not visible to visitor) informing them no email could be sent as none was collected | `[SLASHCOMMAND]` |
+| `agentFacingVerificationMessage` | This is the private message (not visbile to visitor) sent to the agent in the conversation view providing them the verification code so they may compare with the one the visitor will send back. | `[CODE]`, `[EMAIL]`, `[SLASHCOMMAND]` |
+
+## Email Example
+
+Subject: *controlled by `globalConfig.messaging.emailSubject`*
+
+# Your verification code is [CODE]. (this is controlled by `verificationCodePreText`)
+
+Please send this code to the support agent helping you to verify you own this email. (this is controlled by `emailCta`)
+
+Click here to jump right back into your conversation with our team. (this is controlled by `returnToConversationLink`)
+
+Best, Company Name (this is controlled by `emailSignature`)
