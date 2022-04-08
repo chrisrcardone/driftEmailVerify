@@ -29,7 +29,11 @@ const globalConfig = {
     emailSubject: 'Your Verification Code for Chat: [CODE]',
     // [EMAIL] will be auto replaced with their email address, you can remove this. The token may only be used once.
     autoReplyInChat: 'We have sent a verification code to [EMAIL] in an effort to verify your identity. Please reply here with the code we sent to complete this verification process.',
-    emailSignature: '- CompanyName'
+    emailSignature: '- CompanyName',
+    // [SLASHCOMMAND] will be replaced with the slash command you set under globalConfig.command.slashCommand, this token may only be used once.
+    noEmailAgentFacingError: `<p>Verification Process Could Not Be Performed: <b>No Email Collected</b></p><p>&nbsp;</p><p>Please collect the visitor's email and then run the /[SLASHCOMMAND] command again.</p>`,
+    // The tokens [EMAIL], [CODE], and [SLASHCOMMAND] are usable here, they may each be used once. Email replaces with email code was sent to, Code with verification code, and Slash Command with your configured slash command.
+    agentFacingVerificationMessage: `<p>Verification Code: <b>[CODE]</b></p><p>&nbsp;</p><p>This was sent to [EMAIL]</p><p><small>Please ask them for the code before proceeding. If they need it sent again you can use the slash command /[SLASHCOMMAND] again and a new code will be generated.</small></p>`
   },
   command: {
     slashCommand: 'verify'
@@ -159,7 +163,7 @@ app.post('/messages', (req, res) => {
                   .send({
 
                     "type":"private_note",
-                    "body": `<p>Verification Process Could Not Be Performed: <b>No Email Collected</b></p><p>&nbsp;</p><p>Please collect the visitor's email and then run the /${globalConfig.command.slashCommand} command again.</p>`
+                    "body": globalConfig.messaging.noEmailAgentFacingError.replace("[SLASHCOMMAND]", globalConfig.command.slashCommand)
 
                   })
                   .catch(err => console.log(err))
@@ -182,7 +186,7 @@ app.post('/messages', (req, res) => {
               .send({
                 
                 "type":"private_note",
-                "body": `<p>Verification Code: <b>${code}</b></p><p>&nbsp;</p><p>This was sent to ${contact.body.data.attributes.email}</p><p><small>Please ask them for the code before proceeding. If they need it sent again you can use the slash command /${globalConfig.command.slashCommand} again and a new code will be generated.</small></p>`
+                "body": globalConfig.messaging.agentFacingVerificationMessage.replace("[EMAIL]", contact.body.data.attributes.email).replace("[SLASHCOMMAND]", globalConfig.command.slashCommand).replace("[CODE]", code)
 
               })
               .catch(err => console.log(err))
