@@ -65,7 +65,7 @@ To simulate what an agent using the shortcut `/verify` would look like and that 
 # Global Config Guide
 
 | Token      | Required | Description | Tokens Usable | Content Type |
-| ----- | --- | ----------- | ---- |
+| ----- | --- | ----------- | ---- | ---- |
 | `settings.useLandingPages` | **Yes** | If `true` your visitors will be sent to a landing page to click a button to complete verification. If `false` your visitors will be sent a verification code to send back in the chat. | n/a | Boolean (t/f) |
 | `settings.oneClickConfirmationAndReport` | *If `settings.useLandingPages` is `true`, yes.* | If `true` the link sent to your visitors via email will complete verification in one-click. If `false` they will need to click the link and click a button on the landing page to complete verification (more secure choice). | n/a | Boolean (t/f) |
 | `settings.protocol` | **Yes** | The protocol you're running your server on, this will also be the protocol the links sent to your visitors will be sent in. The value of this should either be `https://` or `http://`. | n/a | Plain Text |
