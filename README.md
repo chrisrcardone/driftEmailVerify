@@ -138,6 +138,22 @@ To help your reps move faster, enable them with saved replies that they send whe
 | How do I control what email the verification code is sent to? | We'll send the code to the email of the visitor, you can check and change this [in the sidebar](https://gethelp.drift.com/s/article/Conversation-View) manaually should your agents need to. |
 | Why should I host this myself? | Currently, there isn't a version of this in the app directory. Nevertheless, by self-hosting you mitigate the need to provide access to your Drift Account to any 3rd party providers. |
 
-## Email Example
+## Content Examples
 
+### Landing Page: Conversation reported over spam threshold set in `globalConfig.settings.landingPageReportSpamThreshold`
+<img width="1359" alt="Screen Shot 2022-04-08 at 11 40 24 PM" src="https://user-images.githubusercontent.com/35717678/162554999-c3b0f88e-fa17-475c-add4-56ef5f020612.png">
 
+### Landing Page: Conversation verified over spam threshold set in `globalConfig.settings.landingPageVerificationSpamThreshold`
+<img width="1362" alt="Screen Shot 2022-04-08 at 11 31 06 PM" src="https://user-images.githubusercontent.com/35717678/162555002-19044c1c-c8d4-4bb7-85d1-a9c4cf5b428e.png">
+
+### Landing Page: Successful "Not Me" Report (notMePage)
+<img width="1361" alt="Screen Shot 2022-04-08 at 11 30 24 PM" src="https://user-images.githubusercontent.com/35717678/162555003-9ed547b2-b7fc-45b8-99a9-bdb41559f00c.png">
+
+### Landing Page: Confirmation Page (email links to this when `globalConfig.settings.oneClickConfirmationAndReport` is `false`)
+<img width="1359" alt="Screen Shot 2022-04-08 at 11 30 12 PM" src="https://user-images.githubusercontent.com/35717678/162555004-f7d27a03-88cc-4b81-8048-69f6ba8293c6.png">
+
+### Email: Verification via Code Email (sends when `globalConfig.settings.useLandingPages` is `false`)
+<img width="644" alt="Screen Shot 2022-04-08 at 11 29 49 PM" src="https://user-images.githubusercontent.com/35717678/162555005-8f6284ca-59b8-4077-8da9-b04666b8eeac.png">
+
+### Email: Verification via Landing Page Email (sends when `globalConfig.settings.useLandingPages` is `true`)
+<img width="643" alt="Screen Shot 2022-04-08 at 11 28 22 PM" src="https://user-images.githubusercontent.com/35717678/162555006-1844b480-a4a0-4847-b4c4-a6c2d49bb18d.png">
