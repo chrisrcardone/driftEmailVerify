@@ -2,15 +2,24 @@
 
 This is free to use code that provides a template for leveraging [Drift's Open Developer API](https://devdocs.drift.com/docs/quick-start) to verify a visitor's email address without the agent needing to leave the conversation or use another service in the process.
 
-## [View Demo Video of This in Action](https://video.drift.com/v/abbRsIWZ5qO/)
+# Two Configurations
 
-### Prerequisite:
+1. Code: Agent uses `/` command to trigger verification process > visitor is emailed a verification code > visitor completes process by sharing code in chat > agent verifies code against the code they can see in theipr chat view
+2. Landing Page: Agent uses `/` command to trigger verification process > visitor is emailed a link to a landing page > visitor completes process by confirming themselves through clicking the emailed link > agent receives a message in their chat view once they have verified themselves
+
+## How to set configuration
+
+Code configuration is active when `globalConfig.settings.useLandingPages` is `false` and Landing Page configuration is active when `globalConfig.settings.useLandingPages` is `true`.
+
+# Guide
+
+## Prerequisite:
 
 - Amazon Web Services Simple Email Sending
 
 *You can use this with another email sender, however, you will have to adjust the code to leverage your email sender of choice.*
 
-### Quick Start Guide:
+## Quick Start Guide:
 
 - [ ] Download this code and open it in a code editor (e.g., [Visual Studio Code](https://code.visualstudio.com/))
 - [ ] Locate/create a programmatic user in AWS for SES ([Guide](https://betterprogramming.pub/how-to-send-emails-with-node-js-using-amazon-ses-8ae38f6312e4#:~:text=Creating%20an%20AWS%20IAM%20user%20with%20SES%20permissions))
