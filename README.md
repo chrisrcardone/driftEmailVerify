@@ -166,3 +166,20 @@ To help your reps move faster, enable them with saved replies that they send whe
 
 ### Email: Verification via Landing Page Email (sends when `globalConfig.settings.useLandingPages` is `true`)
 <img width="643" alt="Screen Shot 2022-04-08 at 11 28 22 PM" src="https://user-images.githubusercontent.com/35717678/162555006-1844b480-a4a0-4847-b4c4-a6c2d49bb18d.png">
+
+## Email Names and Required Variables
+
+### "verifyWithLandingPage"
+
+Used when landing page mode is active.
+
+Required variables:
+- `[CONFIRMLINK]`
+- `[REPORTLINK]`
+
+### "verifyWithCode
+
+Used when code mode is active.
+
+Required variables:
+- `[CODE]`
