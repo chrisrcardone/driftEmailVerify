@@ -1,14 +1,14 @@
 {
-  "name": "driftexporter",
+  "name": "Drift Email Verification",
   "version": "1.0.0",
-  "description": "",
+  "description": "Verify the emails those chatting with your support agents directly within Drift.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "run": "node index.js",
     "start": "node index.js"
   },
-  "author": "",
+  "author": "Chris Cardone",
   "license": "ISC",
   "dependencies": {
     "aws-sdk": "^2.1110.0",
