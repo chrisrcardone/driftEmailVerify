@@ -597,7 +597,7 @@ app.get('/verifyMe/:convoId', function(req, res) {
 })
 
 // Scheduled job every 24-hours to clear stored conversation IDs
-const job = schedule.scheduleJob('* * 0,4,8,12,16,20 * * *', function(){
+const job = schedule.scheduleJob('15 0,4,8,12,16,20 * * *', function(){
 
   verifiedConvoIds = []
   console.log("Verified Conversation IDs Cleared")
