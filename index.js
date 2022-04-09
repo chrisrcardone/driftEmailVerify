@@ -427,8 +427,8 @@ app.get('/verifyMe/yes/:convoId', function (req, res) {
                 </div>
                 </div>
 
-                <script>
-                if(${globalConfig.settings.loadDriftOnLandingPages}){
+                ${globalConfig.settings.loadDriftOnLandingPages ?
+                `<script>
                   "use strict";
             
                   !function() {
@@ -454,6 +454,8 @@ app.get('/verifyMe/yes/:convoId', function (req, res) {
                   drift.SNIPPET_VERSION = '${globalConfig.drift.SNIPPET_VERSION}';
                   drift.load('${globalConfig.drift.embedId}');
                 }
+            
+                </script>` : ``}
                                 
                    
                   </body>
@@ -550,9 +552,8 @@ app.get('/verifyMe/yes/:convoId', function (req, res) {
                 </div>
                 </div>
 
-
-                <script>
-                if(${globalConfig.settings.loadDriftOnLandingPages}){
+                ${globalConfig.settings.loadDriftOnLandingPages ?
+                `<script>
                   "use strict";
             
                   !function() {
@@ -579,7 +580,7 @@ app.get('/verifyMe/yes/:convoId', function (req, res) {
                   drift.load('${globalConfig.drift.embedId}');
                 }
             
-                </script>
+                </script>` : ``}
                                 
                    
                   </body>
@@ -633,9 +634,9 @@ app.get('/verifyMe/report/:convoId', function (req, res) {
                   </div>
                 </div>
                 </div>
-
-                <script>
-                if(${globalConfig.settings.loadDriftOnLandingPages}){
+            
+            ${globalConfig.settings.loadDriftOnLandingPages ?
+                `<script>
                   "use strict";
             
                   !function() {
@@ -661,7 +662,8 @@ app.get('/verifyMe/report/:convoId', function (req, res) {
                   drift.SNIPPET_VERSION = '${globalConfig.drift.SNIPPET_VERSION}';
                   drift.load('${globalConfig.drift.embedId}');
                 }
-                </script>
+            
+                </script>` : ``}
                                 
                    
                   </body>
@@ -706,8 +708,8 @@ app.get('/verifyMe/report/:convoId', function (req, res) {
     </div>
     </div>
     
-    <script>
-    if(${globalConfig.settings.loadDriftOnLandingPages}){
+    ${globalConfig.settings.loadDriftOnLandingPages ?
+    `<script>
       "use strict";
 
       !function() {
@@ -734,7 +736,7 @@ app.get('/verifyMe/report/:convoId', function (req, res) {
       drift.load('${globalConfig.drift.embedId}');
     }
 
-    </script>
+    </script>` : ``}
        
       </body>
       
@@ -779,8 +781,8 @@ app.get('/verifyMe/:convoId', function (req, res) {
   </div>
   </div>
     
-    <script>
-    if(${globalConfig.settings.loadDriftOnLandingPages}){
+    ${globalConfig.settings.loadDriftOnLandingPages ?
+    `<script>
       "use strict";
 
       !function() {
@@ -807,8 +809,8 @@ app.get('/verifyMe/:convoId', function (req, res) {
       drift.load('${globalConfig.drift.embedId}');
     }
 
-    </script>
-     
+    </script>` : ``}
+                
     </body>
   </html>`)
 
