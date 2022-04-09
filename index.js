@@ -13,7 +13,9 @@ const globalConfig = {
     useLandingPages: true,
     oneClickConfirmationAndReport: false,
     protocol: 'https://',
-    testMode: false
+    testMode: false,
+    landingPageVerificationSpamThreshold: 2,
+    landingPageReportSpamThreshold: 2
   },
   amazonSes: {
     accessKeyId: '',
@@ -329,7 +331,7 @@ app.get('/verifyMe/yes/:convoId', function(req, res) {
 
   verifiedConvoIds.push(convoId)
 
-  if(verifiedConvoIds.filter((id) => (id === convoId)).length > 2){
+  if(verifiedConvoIds.filter((id) => (id === convoId)).length > globalConfig.settings.landingPageVerificationSpamThreshold){
 
     res.send(`<!doctype html>
                 <html lang="en">
@@ -475,7 +477,7 @@ app.get('/verifyMe/report/:convoId', function(req, res) {
   const convoId = req.params.convoId;
   reportedConvoIds.push(convoId)
 
-  if(reportedConvoIds.filter((id) => (id === convoId)).length > 2){
+  if(reportedConvoIds.filter((id) => (id === convoId)).length > globalConfig.settings.landingPageReportSpamThreshold){
 
     res.send(`<!doctype html>
                 <html lang="en">
@@ -495,8 +497,8 @@ app.get('/verifyMe/report/:convoId', function(req, res) {
                     <div class="card m-auto mt-5">
                   <h5 class="card-header">${globalConfig.landingPage.allPages.companyName}</h5>
                   <div class="card-body">
-                    <h5 class="card-title">${globalConfig.landingPage.notMePage.headerMessage}</h5>
-                    <p class="card-text">${globalConfig.landingPage.notMePage.bodyMessage}</p>
+                    <h5 class="card-title">${globalConfig.landingPage.notMePage.alreadyReported.headerMessage}</h5>
+                    <p class="card-text">${globalConfig.landingPage.notMePage.alreadyReported.bodyMessage}</p>
                   </div>
                 </div>
                 </div>
