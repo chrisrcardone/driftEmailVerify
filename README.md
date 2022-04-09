@@ -167,19 +167,26 @@ To help your reps move faster, enable them with saved replies that they send whe
 ### Email: Verification via Landing Page Email (sends when `globalConfig.settings.useLandingPages` is `true`)
 <img width="643" alt="Screen Shot 2022-04-08 at 11 28 22 PM" src="https://user-images.githubusercontent.com/35717678/162555006-1844b480-a4a0-4847-b4c4-a6c2d49bb18d.png">
 
-## Email Names and Required Variables
+## Email Names and Available Tokens Variables
+
+Looking to customize the look/content of the email fully without using `globalConfig`? Go for it, head to the `functions.js` file and you'll find the HTML powering those emails. To make changes easy, both emails have tokens built-in that you can use.
 
 ### "verifyWithLandingPage"
 
 Used when landing page mode is active.
 
-Required variables:
-- `[CONFIRMLINK]`
-- `[REPORTLINK]`
+Available tokens:
+- `[EMAIL]`: visitor's email
+- `[CONVOID]`: conversation ID
+- `[CONFIRMLINK]`: confirmation email link to complete/continue verification process
+- `[REPORTLINK]`: link to report "not me"
 
 ### "verifyWithCode
 
 Used when code mode is active.
 
-Required variables:
-- `[CODE]`
+Available tokens:
+- `[CODE]`: verification code
+- `[RETURNURL]`: URL to return to conversation (not always present, hence the if/else condition evaluating `emailDetails.hasReturnUrl`)
+- `[CONVOID]`: conversation ID
+- `[EMAIL]`: visitor's email
