@@ -45,7 +45,10 @@ To simulate what an agent using the shortcut `/verify` would look like and that 
 {
     "data":{
         "conversationId":"<Conversation ID>",
-        "body":"/verify"
+        "body":"/verify",
+        "author": {
+          "type":"user"
+        }
     }
 }
 ```
