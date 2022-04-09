@@ -19,6 +19,7 @@ This is free to use code that provides a template for leveraging [Drift's Open D
 - [ ] Fill out values in `globalConfig`
 - [ ] Run `npm install` to download required modules
 - [ ] Test, test, test
+- [ ] Add your verification token from Drift to `globalConfig.drift.verificationToken` (to find this go to dev.drift.com > your app [click "Manage" button on hover] > App Credentials) 
 - [ ] Deploy code then input the hosted URL for this new Webhook Endpoint (should look like: api.yourdomain.com/messages) into your [Drift Developer App under Webhooks](https://devdocs.drift.com/docs/webhook-events-1) and subscribe to the webhook event `new_command_message`
 - [ ] Run a live test in Drift
 - [ ] Enable your team in Drift to leverage `/verify` when they'd like to send a verification code to the visitor they're chatting with before executing their request
@@ -30,6 +31,7 @@ This is free to use code that provides a template for leveraging [Drift's Open D
 - Replaced the placeholders with their respective values
 - Have [Postman](https://www.postman.com/) installed
 - Have added the permissions `contact_read` and `conversation_write` to your Drift Developer App
+- Have `globalConfig.settings.testMode` set to true
 
 To simulate what an agent using the shortcut `/verify` would look like and that it is functioning properly before deploying, you may follow these steps:
 
@@ -48,6 +50,74 @@ To simulate what an agent using the shortcut `/verify` would look like and that 
 }
 ```
 
+# Global Config Guide
+
+| Token      | Required | Description | Tokens Usable |
+| ----- | --- | ----------- | ---- |
+| `settings.useLandingPages` | **Yes** | If `true` your visitors will be sent to a landing page to click a button to complete verification. If `false` your visitors will be sent a verification code to send back in the chat. | n/a |
+| `settings.oneClickConfirmationAndReport` | *If `settings.useLandingPages` is `true`, yes.* | If `true` the link sent to your visitors via email will complete verification in one-click. If `false` they will need to click the link and click a button on the landing page to complete verification (more secure choice). | n/a |
+| `settings.protocol` | **Yes** | The protocol you're running your server on, this will also be the protocol the links sent to your visitors will be sent in. The value of this should either be `https://` or `http://`. | n/a |
+| `settings.testMode` | No | If `true`, we will not require that the API calls contain a verification token in them. This should be `false` once you deploy the code. | n/a |
+| `settings.landingPageVerificationSpamThreshold` | *If `settings.useLandingPages` is `true`, yes.* | The number of times a conversation can be verified before the verification process is haulted. Recommended value is `2` to prevent spamming your Drift API. | n/a |
+| `settings.landingPageReportSpamThreshold` | *If `settings.useLandingPages` is `true`, yes.* | The number of times a conversation can be reported as "not me" before the reporting process is haulted. Recommended value is `2` to prevent spamming your Drift API. | n/a |
+| `amazonSes.accessKeyId` | **Yes** | Your access key for Amazon SES, to get one [follow this guide](https://betterprogramming.pub/how-to-send-emails-with-node-js-using-amazon-ses-8ae38f6312e4#525e). | n/a |
+| `amazonSes.secretAccessKey` | **Yes** | Your secret access key for Amazon SES, to get one [follow this guide](https://betterprogramming.pub/how-to-send-emails-with-node-js-using-amazon-ses-8ae38f6312e4#525e). | n/a |
+| `amazonSes.region` | **Yes** | Your region for Amazon SES, to find yours [follow this guide](https://betterprogramming.pub/how-to-send-emails-with-node-js-using-amazon-ses-8ae38f6312e4#525e). | n/a |
+| `emailSender.fromName` | **Yes** | The name emails sent to your visitors are sent from. | n/a |
+| `emailSender.fromEmail` | **Yes** | The email your emails sent to visitors are sent from. | n/a |
+| `drift.oAuthAccessToken` | **Yes** | Your oAuth Access Token for Drift, you'll need to have created a developer app to have one. [Follow this guide if you need to do that](https://devdocs.drift.com/docs/quick-start). | n/a |
+| `drift.verificationToken` | **Yes** | Your verification token for your Drift Developer App, this ensures API calls are truly coming from Drift. To find this go to dev.drift.com > your app [click "Manage" button on hover] > App Credentials | n/a |
+| `messaging.company.companyName` | **Yes** | This will appear in all emails and landing pages. | n/a |
+| `messaging.company.websiteUrl` | **Yes** | This will be the URL that your company name hyperlinks to in email signatures. | n/a |
+| `messaging.email.landingPage.subject` | *If `settings.useLandingPages` is `true`, yes.* | The subject line of your verification emails sent to visitors when you have the Landing Pages setting set to `true` | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `messaging.email.landingPage.context` | *If `settings.useLandingPages` is `true`, yes.* | A context message that explains why they are receiving this. This is the first line of the email. | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `messaging.email.landingPage.confirmButton` | *If `settings.useLandingPages` is `true`, yes.* | Text used for the Confirm button in the email. | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `messaging.email.landingPage.reportButton` | *If `settings.useLandingPages` is `true`, yes.* | Text used for the report not me button in the email. | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `messaging.email.code.subject` | *If `settings.useLandingPages` is `false`, yes.* | The subject line of your verification emails sent to visitors when you have the Landing Pages setting set to `false` | `[CODE]`, `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `messaging.email.code.context` | *If `settings.useLandingPages` is `false`, yes.* | A context message that explains why they are receiving this. This is the first line of the email. | `[CODE]`, `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `messaging.email.code.code` | *If `settings.useLandingPages` is `false`, yes.* | The second line of the email that provides the visitor the code they need to send back to the agent they're chatting with. | `[CODE]`, `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `messaging.email.code.returnToChat` | *If `settings.useLandingPages` is `false`, yes.* | The text used for the hyperlink to return to the conversation. This will only show in the email if we're able to find a href associated with a visitor message in the first 50 messages of the conversation. | `[CODE]`, `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `drift.landingPage.external.chatAutoReply` | *If `settings.useLandingPages` is `true`, yes.* | The auto message sent to the visitor from the bot confirming that they have been sent the link to click. | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `drift.landingPage.external.thankYou` | *If `settings.useLandingPages` is `true`, yes.* | The auto message sent to the visitor from the bot confirming they have successfully verified themselves. | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `drift.landingPage.internal.noEmailError` | *If `settings.useLandingPages` is `true`, yes.* | [Not Visible to Visitor] Message sent to agent informing them that verification cannot occur as there isn't an email saved for the visitor. | `[SLASHCOMMAND]`, `[CONVOID]` |
+| `drift.landingPage.internal.verificationMessage` | *If `settings.useLandingPages` is `true`, yes.* | [Not Visible to Visitor] Message sent to agent informing the verification email has been sent. | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `drift.landingPage.internal.verified` | *If `settings.useLandingPages` is `true`, yes.* | [Not Visible to Visitor] Message sent to agent informing the verification has been completed successfully. | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `drift.landingPage.internal.reported` | *If `settings.useLandingPages` is `true`, yes.* | [Not Visible to Visitor] Message sent to agent informing them that the "Report Not Me" button has been selected by the individual who opened the verification email. Nothing is sent to the visitor. | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `drift.landingPage.external.chatAutoReply` | *If `settings.useLandingPages` is `false`, yes.* | The auto message sent to the visitor from the bot confirming that they have been sent verification code and must provide it to continue. | `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `drift.code.internal.noEmailError` | *If `settings.useLandingPages` is `false`, yes.* | [Not Visible to Visitor] Message sent to agent informing them that verification cannot occur as there isn't an email saved for the visitor. | `[SLASHCOMMAND]`, `[CONVOID]` |
+| `drift.code.internal.verificationMessage` | *If `settings.useLandingPages` is `false`, yes.* | [Not Visible to Visitor] Message sent to agent informing the verification email has been sent and providing them the verification code so they may verify the code the visitor sends back. | `[CODE]`, `[EMAIL]`, `[SLASHCOMMAND]`, `[CONVOID]` |
+| `command.slashCommand` | **Yes** | The `/` command we'll listen for from Drift ([learn more](https://gethelp.drift.com/s/article/What-Slash-Commands-are-Available-in-Drift)) | n/a |
+| `landingPage.allPages.companyName` | *If `settings.useLandingPages` is `true`, yes.* | The company name used in the header and page title for all landing pages. | n/a |
+| `landingPage.allPages.faviconUrl` | No | The favicon used for all landing pages. | n/a |
+| `landingPage.confirmationPage.pageTitle` | *If `settings.useLandingPages` is `true` and `settings.oneClickConfirmationAndReport` is `false`, yes.* | The page title of the page visitors are sent to when they click the verification email's link when one-click is not enabled. | n/a |
+| `landingPage.confirmationPage.headerMessage` | *If `settings.useLandingPages` is `true` and `settings.oneClickConfirmationAndReport` is `false`, yes.* | The header message on the page visitors are sent to when they click the verification email's link when one-click is not enabled. | n/a |
+| `landingPage.confirmationPage.bodyMessage` | *If `settings.useLandingPages` is `true` and `settings.oneClickConfirmationAndReport` is `false`, yes.* | The body message on the page visitors are sent to when they click the verification email's link when one-click is not enabled. | n/a |
+| `landingPage.confirmationPage.confirmButton` | *If `settings.useLandingPages` is `true` and `settings.oneClickConfirmationAndReport` is `false`, yes.* | The text in the confirmation button on the verification confirmation page. | n/a |
+| `landingPage.confirmationPage.notMeLink` | *If `settings.useLandingPages` is `true` and `settings.oneClickConfirmationAndReport` is `false`, yes.* | The text in the report not me link on the verification confirmation page. | n/a |
+| `landingPage.successPage.pageTitle` | *If `settings.useLandingPages` is `true`, yes.* | Title of the verification success page that visitors without a redirect/return URL will see. | n/a |
+| `landingPage.successPage.withReturnUrl.headerMessage` | No | (Deprecated) This value is no longer in use. | n/a |
+| `landingPage.successPage.withReturnUrl.bodyMessage` | No | (Deprecated) This value is no longer in use. | `[redirectUrl]` |
+| `landingPage.successPage.withoutReturnUrl.headerMessage` | *If `settings.useLandingPages` is `true`, yes.* | The header message that visitors without Return URLs will see. This page should inform them to close the tab and return to where they were chatting. | n/a |
+| `landingPage.successPage.withoutReturnUrl.bodyMessage` | *If `settings.useLandingPages` is `true`, yes.* | The body message that visitors without Return URLs will see. This page should inform them to close the tab and return to where they were chatting. | n/a |
+| `landingPage.successPage.alreadyVerified.pageTitle` | *If `settings.useLandingPages` is `true`, yes.* | The page title that is used when a visitor is attempting to verify themselves for the 3rd time within a 4 hour time period. This page informs them their verification cannot be processed. | n/a |
+| `landingPage.successPage.alreadyVerified.headerMessage` | *If `settings.useLandingPages` is `true`, yes.* | The header message that is used when a visitor is attempting to verify themselves for the 3rd time within a 4 hour time period. This page informs them their verification cannot be processed. | n/a |
+| `landingPage.successPage.alreadyVerified.pageTitle` | *If `settings.useLandingPages` is `true`, yes.* | The body message that is used when a visitor is attempting to verify themselves for the 3rd time within a 4 hour time period. This page informs them their verification cannot be processed. | n/a |
+| `landingPage.notMePage.pageTitle` | *If `settings.useLandingPages` is `true`, yes.* | The page title of the page a visitor will land on when they've opted to report that it is not them who is chatting. | n/a |
+| `landingPage.notMePage.headerMessage` | *If `settings.useLandingPages` is `true`, yes.* | The header message on the page a visitor will land on when they've opted to report that it is not them who is chatting. | n/a |
+| `landingPage.notMePage.bodyMessage` | *If `settings.useLandingPages` is `true`, yes.* | The body message on the page a visitor will land on when they've opted to report that it is not them who is chatting. | `[websiteUrl]` |
+| `landingPage.notMePage.alreadyReported.pageTitle` | *If `settings.useLandingPages` is `true`, yes.* | The page title that is used when a visitor is attempting to report a conversation's verification request as not them for the 3rd time within a 4 hour time period. This page informs them their report cannot be processed. | n/a |
+| `landingPage.notMePage.alreadyReported.headerMessage` | *If `settings.useLandingPages` is `true`, yes.* | The header message that is used when a visitor is attempting to report a conversation's verification request as not them for the 3rd time within a 4 hour time period. This page informs them their report cannot be processed. | n/a |
+| `landingPage.notMePage.alreadyReported.bodyMessage` | *If `settings.useLandingPages` is `true`, yes.* | The body message that is used when a visitor is attempting to report a conversation's verification request as not them for the 3rd time within a 4 hour time period. This page informs them their report cannot be processed. | n/a |
+
+### Tokens:
+- `[EMAIL]`: the visitors email address
+- `[CODE]`: the verification code generated and sent to visitor (if `globalConfig.setting.useLandingPages` is `false`)
+- `[SLASHCOMMAND]`: the slash command you set in `globalConfig.command.slashcommand`
+- `[CONVOID]`: the conversation ID
+- `[websiteUrl]`: the website URL you set in `globalConfig.messaging.company.websiteUrl`
+- `[redirectUrl]`: (Deprecated - visitors are now auto redirected) the URL for the visitor to return to in order to continue chatting
+
+
 ## What next?
 
 To help your reps move faster, enable them with saved replies that they send when asking if sending a verification code would be okay, you can do this with [Saved Replied in Drift](https://gethelp.drift.com/s/article/How-to-Create-and-Manage-Saved-Replies). Here are some examples:
@@ -65,36 +135,6 @@ To help your reps move faster, enable them with saved replies that they send whe
 | How do I control what email the verification code is sent to? | We'll send the code to the email of the visitor, you can check and change this [in the sidebar](https://gethelp.drift.com/s/article/Conversation-View) manaually should your agents need to. |
 | Why should I host this myself? | Currently, there isn't a version of this in the app directory. Nevertheless, by self-hosting you mitigate the need to provide access to your Drift Account to any 3rd party providers. |
 
-# Customizations
-
-## Messaging Customizations
-
-*The message customizations outlined above are changable within `globalConfig.messaging`.*
-
-| Token | Description |
-| ----------- | ----------- |
-| `[EMAIL]` | The email of the visitor chatting via Drift |
-| `[CODE]` | The verification code sent to the visitors email |
-| `[SLASHCOMMAND]` | The slash command that this Nodejs Server is listening for to run this command, this is set under `globalConfig.command.slashCommand` |
-
-| Variable      | Description | Available Tokens |
-| ----------- | ----------- | ----------- |
-| `returnToConversationLink`      | This is the **hyperlink text** that appears within the email which will link them back to the page they began their conversation on and will launch open the Drift Widget with the conversation ready.       | None |
-| `verificationCodePreText`   | This is the messaging within the `<h1>` tag at the beginning of the verification email. (See below for an email outline)       | `[CODE]` |
-| `emailCta` | This is the messaging within the `<p>` tag that directly follows the `<h1>` with the verification code. (See below for an email outline) | None |
-| `autoReplyInChat` | This is the auto message sent **from the bot** to the visitor chatting with the agent to confirm the email has been sent. | `[EMAIL]` |
-| `emailSignature` | This is the last `<p>` tag of the verification email. | None |
-| `noEmailAgentFacingError` | This is the error message sent to the agent in the chat as a private note (not visible to visitor) informing them no email could be sent as none was collected | `[SLASHCOMMAND]` |
-| `agentFacingVerificationMessage` | This is the private message (not visbile to visitor) sent to the agent in the conversation view providing them the verification code so they may compare with the one the visitor will send back. | `[CODE]`, `[EMAIL]`, `[SLASHCOMMAND]` |
-
 ## Email Example
 
-Subject: *controlled by `globalConfig.messaging.emailSubject`*
 
-# Your verification code is [CODE]. (this is controlled by `verificationCodePreText`)
-
-Please send this code to the support agent helping you to verify you own this email. (this is controlled by `emailCta`)
-
-Click here to jump right back into your conversation with our team. (this is controlled by `returnToConversationLink`)
-
-Best, Company Name (this is controlled by `emailSignature`)
