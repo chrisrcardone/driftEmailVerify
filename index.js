@@ -13,9 +13,11 @@ const globalConfig = {
     useLandingPages: true,
     oneClickConfirmationAndReport: false,
     protocol: 'https://',
-    testMode: false,
-    landingPageVerificationSpamThreshold: 2,
-    landingPageReportSpamThreshold: 2
+    testMode: true,
+    landingPageVerificationSpamThreshold: 1,
+    landingPageReportSpamThreshold: 1,
+    clearVerifyByAgent: true,
+    loadDriftOnLandingPages: true
   },
   amazonSes: {
     accessKeyId: '',
@@ -29,7 +31,9 @@ const globalConfig = {
   // Need a Drift Token? Here's how to get one: https://devdocs.drift.com/docs/quick-start
   drift: {
     oAuthAccessToken: '',
-    verificationToken: ''
+    verificationToken: '',
+    embedId: '',
+    SNIPPET_VERSION: ''
   },
   messaging: {
     company: {
@@ -76,7 +80,8 @@ const globalConfig = {
     }
   },
   command: {
-    slashCommand: 'verify'
+    slashCommand: 'verify',
+    clearCommand: 'clearVerify'
   },
   landingPage: {
     allPages: {
@@ -103,7 +108,8 @@ const globalConfig = {
       alreadyVerified: {
         pageTitle: 'Already Verified',
         headerMessage: 'You already verified yourself.',
-        bodyMessage: `We cannot process an additional verification as you have already verified your email within the past 4 hours.`
+        bodyMessage: `We cannot process an additional verification as you have already verified your email within the past 4 hours.`,
+        returnUrl: `Return to Conversation`
       }
     },
     notMePage: {
@@ -135,12 +141,12 @@ let sendEmail = (recipientEmail, emailName, emailDetails) => {
       Body: {
         Html: {
           Charset: 'UTF-8',
-          Data: emails.build(emailName, globalConfig,emailDetails).body,
+          Data: emails.build(emailName, globalConfig, emailDetails).body,
         },
       },
       Subject: {
         Charset: 'UTF-8',
-        Data: emails.build(emailName, globalConfig,emailDetails).subject,
+        Data: emails.build(emailName, globalConfig, emailDetails).subject,
       }
     },
   };
@@ -154,13 +160,18 @@ const PORT = process.env.PORT || 8080
 app.use(bodyParser.json())
 app.listen(PORT, () => console.log(`Live on Port: ${PORT}`))
 
+// Arrays to hold convo IDs to enforce anti-spam filtering
+let verifiedConvoIds = new Array()
+let reportedConvoIds = new Array()
+
 // This is the webhook to send Webhook Events to from Drift, here's how to have events sent here: https://devdocs.drift.com/docs/webhook-events-1
 // You need to subscribe to the `new_command_message` event
 // You need to add permissions: contact_read (allows us to get the email of the visitor), conversation_write (allows us to send the verification code into a private note in chat for agent's reference)
 app.post('/messages', (req, res) => {
+  const convoId = req.body.data.conversationId;
 
   // Confirming request has proper token, if in test mode, not requiring token
-  if(!globalConfig.settings.testMode && req.body.token !== globalConfig.drift.verificationToken){
+  if (!globalConfig.settings.testMode && req.body.token !== globalConfig.drift.verificationToken) {
 
     // Rejecting request.
     res.status(500).end()
@@ -170,7 +181,28 @@ app.post('/messages', (req, res) => {
   }
 
   // Confirming that the command message is `/verify` and not something else.
-  if(!req.body.data.body.includes(`/${globalConfig.command.slashCommand}`) || req.body.data.author.type !== "user"){
+  if (globalConfig.settings.clearVerifyByAgent && req.body.data.body.includes(`/${globalConfig.command.clearCommand}`) && req.body.data.author.type == "user") {
+
+    verifiedConvoIds = []
+    reportedConvoIds = []
+
+    request.post(`https://driftapi.com/conversations/${convoId}/messages`)
+      .set('Content-Type', 'application/json')
+      .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+      .send({
+
+        "type": "private_note",
+        "body": `We have cleared the stored Verified Conversation IDs and Reported Conversation IDs, now your visitor who was running into the spam filter may retry.`
+
+      })
+      .catch(err => console.log(err))
+
+    res.status(200).end()
+
+    // Ending process as the command message did not match criteria
+    return
+
+  } else if (!req.body.data.body.includes(`/${globalConfig.command.slashCommand}`) || req.body.data.author.type !== "user") {
 
     res.status(200).end()
 
@@ -180,7 +212,6 @@ app.post('/messages', (req, res) => {
   }
 
   // Saving Conversation ID and Generating Random 4 Digit Code
-  const convoId = req.body.data.conversationId;
   const code = Math.floor(Math.random() * 10000);
 
   var tokens = [
@@ -197,50 +228,52 @@ app.post('/messages', (req, res) => {
       value: globalConfig.command.slashCommand
     }
   ]
-  
+
   // Getting Conversation Details to Gather Visitor's ID
   request.get(`https://driftapi.com/conversations/${convoId}`)
-      .set('Content-Type', 'application/json')
-      .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
-      .send()
-      .end((err, result) => {
+    .set('Content-Type', 'application/json')
+    .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+    .send()
+    .end((err, result) => {
 
-          // Optional: Get URL of Conversation to Provide a Return to Conversation Link in Email
-          request.get(`https://driftapi.com/conversations/${convoId}/messages`)
-            .set('Content-Type', 'application/json')
-            .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
-            .send()
-            .end((ohno, transcript) => {
+      // Optional: Get URL of Conversation to Provide a Return to Conversation Link in Email
+      request.get(`https://driftapi.com/conversations/${convoId}/messages`)
+        .set('Content-Type', 'application/json')
+        .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+        .send()
+        .end((ohno, transcript) => {
 
-              // Attempting to find a message that has a URL attached to it, this URL would be where the END USER sent the message from (Drift doesn't store a URL for agents chats)
-              var messageWithUrl = transcript.body.data.messages.find(object => {
-                // Placing in a try/catch to avoid undefined errors
-                try{
-                  if(object.context.href != undefined) {
-                    return true;
-                  }
-                } catch (e) {
-                  return false;
-                }
-              })
-
-              // If we weren't able to find one with a URL, this will leave the `returnUrl` value blank and it will not populate in the email
-              if(messageWithUrl){
-                // Setting hasReturnUrl which is used for email personalization
-             var hasReturnUrl = true;
-              
-              // Checking if the URL already has parameters so we can either begin or append to the chain properly
-              if(messageWithUrl.context.href.includes("?")){
-                var returnUrl = `${messageWithUrl.context.href}&d_conversation=${convoId}`
-              } else {
-                var returnUrl = `${messageWithUrl.context.href}?d_conversation=${convoId}`
+          // Attempting to find a message that has a URL attached to it, this URL would be where the END USER sent the message from (Drift doesn't store a URL for agents chats)
+          var messageWithUrl = transcript.body.data.messages.find(object => {
+            // Placing in a try/catch to avoid undefined errors
+            try {
+              if (object.context.href != undefined) {
+                return true;
               }
+            } catch (e) {
+              return false;
+            }
+          })
 
-              } 
-              // Else condition to prevent error if return URL is not findable
-              else { var returnUrl = "&nbsp;" 
-               // Setting hasReturnUrl which is used for email personalization
-              var hasReturnUrl = false;}
+          // If we weren't able to find one with a URL, this will leave the `returnUrl` value blank and it will not populate in the email
+          if (messageWithUrl) {
+            // Setting hasReturnUrl which is used for email personalization
+            var hasReturnUrl = true;
+
+            // Checking if the URL already has parameters so we can either begin or append to the chain properly
+            if (messageWithUrl.context.href.includes("?")) {
+              var returnUrl = `${messageWithUrl.context.href}&d_conversation=${convoId}`
+            } else {
+              var returnUrl = `${messageWithUrl.context.href}?d_conversation=${convoId}`
+            }
+
+          }
+          // Else condition to prevent error if return URL is not findable
+          else {
+            var returnUrl = "&nbsp;"
+            // Setting hasReturnUrl which is used for email personalization
+            var hasReturnUrl = false;
+          }
 
 
           // Using Visitor's ID to Request Their Email
@@ -251,62 +284,62 @@ app.post('/messages', (req, res) => {
             .end((error, contact) => {
 
               // Checking that there is an email on file that we can send verification code to
-              if(!contact.body.data.attributes.email){
-               
+              if (!contact.body.data.attributes.email) {
+
                 // Letting agent know when there is no email, thus, no verification can be performed
                 request.post(`https://driftapi.com/conversations/${convoId}/messages`)
                   .set('Content-Type', 'application/json')
                   .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
                   .send({
 
-                    "type":"private_note",
+                    "type": "private_note",
                     "body": globalConfig.settings.useLandingPages ? emails.tokens(globalConfig.messaging.drift.landingPage.internal.noEmailError, tokens) : emails.tokens(globalConfig.messaging.drift.code.internal.noEmailError, tokens)
 
                   })
                   .catch(err => console.log(err))
-                
-                  res.status(200).end()
 
-                  // Ending process as the command message did not match criteria
-                  return
-                
+                res.status(200).end()
+
+                // Ending process as the command message did not match criteria
+                return
+
               }
 
-              tokens.push({"placeholder":"[EMAIL]","value": contact.body.data.attributes.email})
+              tokens.push({ "placeholder": "[EMAIL]", "value": contact.body.data.attributes.email })
 
               // Sending Email with Verification Code to Visitor
-              sendEmail(contact.body.data.attributes.email, globalConfig.settings.useLandingPages ? "verifyWithLandingPage" : "verifyWithCode", {code, hasReturnUrl, returnUrl, confirmLink: globalConfig.settings.oneClickConfirmationAndReport ? `${globalConfig.settings.protocol}${req.headers.host}/verifyMe/yes/${convoId}` : `${globalConfig.settings.protocol}${req.headers.host}/verifyMe/${convoId}`, reportLink: globalConfig.settings.oneClickConfirmationAndReport ? `${globalConfig.settings.protocol}${req.headers.host}/verifyMe/report/${convoId}` : `${globalConfig.settings.protocol}${req.headers.host}/verifyMe/${convoId}`})
+              sendEmail(contact.body.data.attributes.email, globalConfig.settings.useLandingPages ? "verifyWithLandingPage" : "verifyWithCode", { code, email: contact.body.data.attributes.email, convoId, hasReturnUrl, returnUrl, confirmLink: globalConfig.settings.oneClickConfirmationAndReport ? `${globalConfig.settings.protocol}${req.headers.host}/verifyMe/yes/${convoId}` : `${globalConfig.settings.protocol}${req.headers.host}/verifyMe/${convoId}`, reportLink: globalConfig.settings.oneClickConfirmationAndReport ? `${globalConfig.settings.protocol}${req.headers.host}/verifyMe/report/${convoId}` : `${globalConfig.settings.protocol}${req.headers.host}/verifyMe/${convoId}` })
 
               // Sending Verification Code Into Conversation As A Private Note
               request.post(`https://driftapi.com/conversations/${convoId}/messages`)
-              .set('Content-Type', 'application/json')
-              .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
-              .send({
-                
-                "type":"private_note",
-                "body": globalConfig.settings.useLandingPages ? emails.tokens(globalConfig.messaging.drift.landingPage.internal.verificationMessage, tokens) : emails.tokens(globalConfig.messaging.drift.code.internal.verificationMessage, tokens)
+                .set('Content-Type', 'application/json')
+                .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+                .send({
 
-              })
-              .catch(err => console.log(err))
+                  "type": "private_note",
+                  "body": globalConfig.settings.useLandingPages ? emails.tokens(globalConfig.messaging.drift.landingPage.internal.verificationMessage, tokens) : emails.tokens(globalConfig.messaging.drift.code.internal.verificationMessage, tokens)
+
+                })
+                .catch(err => console.log(err))
 
               // Sending A Note In The Conversation To Verify Send
               request.post(`https://driftapi.com/conversations/${convoId}/messages`)
-              .set('Content-Type', 'application/json')
-              .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
-              .send({
-                
-                "type":"chat",
-                "body": globalConfig.settings.useLandingPages ? emails.tokens(globalConfig.messaging.drift.landingPage.external.chatAutoReply, tokens) : emails.tokens(globalConfig.messaging.drift.code.external.chatAutoReply, tokens)
+                .set('Content-Type', 'application/json')
+                .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+                .send({
 
-              })
-              .catch(err => console.log(err))
+                  "type": "chat",
+                  "body": globalConfig.settings.useLandingPages ? emails.tokens(globalConfig.messaging.drift.landingPage.external.chatAutoReply, tokens) : emails.tokens(globalConfig.messaging.drift.code.external.chatAutoReply, tokens)
 
-              })
+                })
+                .catch(err => console.log(err))
 
-            // Added closing bracket used when you're getting the return to conversation URL, remove if you've removed that.  
             })
 
+          // Added closing bracket used when you're getting the return to conversation URL, remove if you've removed that.  
         })
+
+    })
 
   // This will not do anything in this process. Only used/seen when testing locally.
   res.send(`Verification process executed.`)
@@ -315,13 +348,10 @@ app.post('/messages', (req, res) => {
 
 // LANDING PAGES
 
-let verifiedConvoIds = []
-let reportedConvoIds = []
+app.get('/verifyMe/yes/:convoId', function (req, res) {
 
-app.get('/verifyMe/yes/:convoId', function(req, res) {
+  if (!globalConfig.settings.useLandingPages) {
 
-  if(!globalConfig.settings.useLandingPages){
-    
     res.status(400).end()
     return
 
@@ -331,9 +361,48 @@ app.get('/verifyMe/yes/:convoId', function(req, res) {
 
   verifiedConvoIds.push(convoId)
 
-  if(verifiedConvoIds.filter((id) => (id === convoId)).length > globalConfig.settings.landingPageVerificationSpamThreshold){
+  if (verifiedConvoIds.filter((id) => (id === convoId)).length > globalConfig.settings.landingPageVerificationSpamThreshold) {
 
-    res.send(`<!doctype html>
+    // Optional: Get URL of Conversation to Provide a Return to Conversation Link in Email
+    request.get(`https://driftapi.com/conversations/${convoId}/messages`)
+      .set('Content-Type', 'application/json')
+      .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+      .send()
+      .end((ohno, transcript) => {
+
+        // Attempting to find a message that has a URL attached to it, this URL would be where the END USER sent the message from (Drift doesn't store a URL for agents chats)
+        var messageWithUrl = transcript.body.data.messages.find(object => {
+          // Placing in a try/catch to avoid undefined errors
+          try {
+            if (object.context.href != undefined) {
+              return true;
+            }
+          } catch (e) {
+            return false;
+          }
+        })
+
+        // If we weren't able to find one with a URL, this will leave the `returnUrl` value blank and it will not populate in the email
+        if (messageWithUrl) {
+          // Setting hasReturnUrl which is used for email personalization
+          var hasReturnUrl = true;
+
+          // Checking if the URL already has parameters so we can either begin or append to the chain properly
+          if (messageWithUrl.context.href.includes("?")) {
+            var returnUrl = `${messageWithUrl.context.href}&d_conversation=${convoId}`
+          } else {
+            var returnUrl = `${messageWithUrl.context.href}?d_conversation=${convoId}`
+          }
+
+        }
+        // Else condition to prevent error if return URL is not findable
+        else {
+          var returnUrl = "&nbsp;"
+          // Setting hasReturnUrl which is used for email personalization
+          var hasReturnUrl = false;
+        }
+
+        res.send(`<!doctype html>
                 <html lang="en">
                   <head>
                     <link rel="icon" href="${globalConfig.landingPage.allPages.faviconUrl}">
@@ -353,80 +422,111 @@ app.get('/verifyMe/yes/:convoId', function(req, res) {
                   <div class="card-body">
                     <h5 class="card-title">${globalConfig.landingPage.successPage.alreadyVerified.headerMessage}</h5>
                     <p class="card-text">${globalConfig.landingPage.successPage.alreadyVerified.bodyMessage}</p>
+                    ${hasReturnUrl ? `<p><a href="${returnUrl}" class="btn btn-primary">${globalConfig.landingPage.successPage.alreadyVerified.returnUrl}</a></p>` : ``}
                   </div>
                 </div>
                 </div>
+
+                <script>
+                if(${globalConfig.settings.loadDriftOnLandingPages}){
+                  "use strict";
+            
+                  !function() {
+                    var t = window.driftt = window.drift = window.driftt || [];
+                    if (!t.init) {
+                      if (t.invoked) return void (window.console && console.error && console.error("Drift snippet included twice."));
+                      t.invoked = !0, t.methods = [ "identify", "config", "track", "reset", "debug", "show", "ping", "page", "hide", "off", "on" ], 
+                      t.factory = function(e) {
+                        return function() {
+                          var n = Array.prototype.slice.call(arguments);
+                          return n.unshift(e), t.push(n), t;
+                        };
+                      }, t.methods.forEach(function(e) {
+                        t[e] = t.factory(e);
+                      }), t.load = function(t) {
+                        var e = 3e5, n = Math.ceil(new Date() / e) * e, o = document.createElement("script");
+                        o.type = "text/javascript", o.async = !0, o.crossorigin = "anonymous", o.src = "https://js.driftt.com/include/" + n + "/" + t + ".js";
+                        var i = document.getElementsByTagName("script")[0];
+                        i.parentNode.insertBefore(o, i);
+                      };
+                    }
+                  }();
+                  drift.SNIPPET_VERSION = '${globalConfig.drift.SNIPPET_VERSION}';
+                  drift.load('${globalConfig.drift.embedId}');
+                }
                                 
                    
                   </body>
                   
                 </html>`)
 
+      })
+
   } else {
 
 
     request.post(`https://driftapi.com/conversations/${convoId}/messages`)
-    .set('Content-Type', 'application/json')
-    .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
-    .send({
-      
-      "type":"chat",
-      "body": `${globalConfig.messaging.drift.landingPage.external.thankYou}`
+      .set('Content-Type', 'application/json')
+      .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+      .send({
 
-    })
-    .catch(err => console.log(err))
+        "type": "chat",
+        "body": `${globalConfig.messaging.drift.landingPage.external.thankYou}`
+
+      })
+      .catch(err => console.log(err))
 
 
-  request.post(`https://driftapi.com/conversations/${convoId}/messages`)
-    .set('Content-Type', 'application/json')
-    .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
-    .send({
-      
-      "type":"private_note",
-      "body": `${globalConfig.messaging.drift.landingPage.internal.verified}`
+    request.post(`https://driftapi.com/conversations/${convoId}/messages`)
+      .set('Content-Type', 'application/json')
+      .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+      .send({
 
-    })
-    .catch(err => console.log(err))
+        "type": "private_note",
+        "body": `${globalConfig.messaging.drift.landingPage.internal.verified}`
+
+      })
+      .catch(err => console.log(err))
 
     request.get(`https://driftapi.com/conversations/${convoId}/messages`)
-            .set('Content-Type', 'application/json')
-            .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
-            .send()
-            .end((ohno, transcript) => {
+      .set('Content-Type', 'application/json')
+      .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+      .send()
+      .end((ohno, transcript) => {
 
-              // Attempting to find a message that has a URL attached to it, this URL would be where the END USER sent the message from (Drift doesn't store a URL for agents chats)
-              var messageWithUrl = transcript.body.data.messages.find(object => {
-                // Placing in a try/catch to avoid undefined errors
-                try{
-                  if(object.context.href != undefined) {
-                    return true;
-                  }
-                } catch (e) {
-                  return false;
-                }
-              })
+        // Attempting to find a message that has a URL attached to it, this URL would be where the END USER sent the message from (Drift doesn't store a URL for agents chats)
+        var messageWithUrl = transcript.body.data.messages.find(object => {
+          // Placing in a try/catch to avoid undefined errors
+          try {
+            if (object.context.href != undefined) {
+              return true;
+            }
+          } catch (e) {
+            return false;
+          }
+        })
 
-              // If we weren't able to find one with a URL, this will leave the `returnUrl` value blank and it will not populate in the email
-              if(messageWithUrl){
-              
-              // Checking if the URL already has parameters so we can either begin or append to the chain properly
-              if(messageWithUrl.context.href.includes("?")){
+        // If we weren't able to find one with a URL, this will leave the `returnUrl` value blank and it will not populate in the email
+        if (messageWithUrl) {
 
-                var urlToRedirect = `${messageWithUrl.context.href}&d_conversation=${convoId}`
+          // Checking if the URL already has parameters so we can either begin or append to the chain properly
+          if (messageWithUrl.context.href.includes("?")) {
 
-              } else {
-                
-                var urlToRedirect = `${messageWithUrl.context.href}?d_conversation=${convoId}`
-              
-              }
+            var urlToRedirect = `${messageWithUrl.context.href}&d_conversation=${convoId}`
 
-              res.redirect(urlToRedirect)
+          } else {
 
-              } 
-              // Else condition to prevent error if return URL is not findable
-              else { 
+            var urlToRedirect = `${messageWithUrl.context.href}?d_conversation=${convoId}`
 
-                res.send(`<!doctype html>
+          }
+
+          res.redirect(urlToRedirect)
+
+        }
+        // Else condition to prevent error if return URL is not findable
+        else {
+
+          res.send(`<!doctype html>
                 <html lang="en">
                   <head>
                     <link rel="icon" href="${globalConfig.landingPage.allPages.faviconUrl}">
@@ -449,6 +549,37 @@ app.get('/verifyMe/yes/:convoId', function(req, res) {
                   </div>
                 </div>
                 </div>
+
+
+                <script>
+                if(${globalConfig.settings.loadDriftOnLandingPages}){
+                  "use strict";
+            
+                  !function() {
+                    var t = window.driftt = window.drift = window.driftt || [];
+                    if (!t.init) {
+                      if (t.invoked) return void (window.console && console.error && console.error("Drift snippet included twice."));
+                      t.invoked = !0, t.methods = [ "identify", "config", "track", "reset", "debug", "show", "ping", "page", "hide", "off", "on" ], 
+                      t.factory = function(e) {
+                        return function() {
+                          var n = Array.prototype.slice.call(arguments);
+                          return n.unshift(e), t.push(n), t;
+                        };
+                      }, t.methods.forEach(function(e) {
+                        t[e] = t.factory(e);
+                      }), t.load = function(t) {
+                        var e = 3e5, n = Math.ceil(new Date() / e) * e, o = document.createElement("script");
+                        o.type = "text/javascript", o.async = !0, o.crossorigin = "anonymous", o.src = "https://js.driftt.com/include/" + n + "/" + t + ".js";
+                        var i = document.getElementsByTagName("script")[0];
+                        i.parentNode.insertBefore(o, i);
+                      };
+                    }
+                  }();
+                  drift.SNIPPET_VERSION = '${globalConfig.drift.SNIPPET_VERSION}';
+                  drift.load('${globalConfig.drift.embedId}');
+                }
+            
+                </script>
                                 
                    
                   </body>
@@ -456,19 +587,19 @@ app.get('/verifyMe/yes/:convoId', function(req, res) {
                 </html>`)
 
 
-               }
-            
-            })
+        }
 
-  
-          }
+      })
+
+
+  }
 
 })
 
-app.get('/verifyMe/report/:convoId', function(req, res) {
+app.get('/verifyMe/report/:convoId', function (req, res) {
 
-  if(!globalConfig.settings.useLandingPages){
-    
+  if (!globalConfig.settings.useLandingPages) {
+
     res.status(400).end()
     return
 
@@ -477,7 +608,7 @@ app.get('/verifyMe/report/:convoId', function(req, res) {
   const convoId = req.params.convoId;
   reportedConvoIds.push(convoId)
 
-  if(reportedConvoIds.filter((id) => (id === convoId)).length > globalConfig.settings.landingPageReportSpamThreshold){
+  if (reportedConvoIds.filter((id) => (id === convoId)).length > globalConfig.settings.landingPageReportSpamThreshold) {
 
     res.send(`<!doctype html>
                 <html lang="en">
@@ -502,6 +633,35 @@ app.get('/verifyMe/report/:convoId', function(req, res) {
                   </div>
                 </div>
                 </div>
+
+                <script>
+                if(${globalConfig.settings.loadDriftOnLandingPages}){
+                  "use strict";
+            
+                  !function() {
+                    var t = window.driftt = window.drift = window.driftt || [];
+                    if (!t.init) {
+                      if (t.invoked) return void (window.console && console.error && console.error("Drift snippet included twice."));
+                      t.invoked = !0, t.methods = [ "identify", "config", "track", "reset", "debug", "show", "ping", "page", "hide", "off", "on" ], 
+                      t.factory = function(e) {
+                        return function() {
+                          var n = Array.prototype.slice.call(arguments);
+                          return n.unshift(e), t.push(n), t;
+                        };
+                      }, t.methods.forEach(function(e) {
+                        t[e] = t.factory(e);
+                      }), t.load = function(t) {
+                        var e = 3e5, n = Math.ceil(new Date() / e) * e, o = document.createElement("script");
+                        o.type = "text/javascript", o.async = !0, o.crossorigin = "anonymous", o.src = "https://js.driftt.com/include/" + n + "/" + t + ".js";
+                        var i = document.getElementsByTagName("script")[0];
+                        i.parentNode.insertBefore(o, i);
+                      };
+                    }
+                  }();
+                  drift.SNIPPET_VERSION = '${globalConfig.drift.SNIPPET_VERSION}';
+                  drift.load('${globalConfig.drift.embedId}');
+                }
+                </script>
                                 
                    
                   </body>
@@ -511,16 +671,16 @@ app.get('/verifyMe/report/:convoId', function(req, res) {
   } else {
 
 
-  request.post(`https://driftapi.com/conversations/${convoId}/messages`)
-    .set('Content-Type', 'application/json')
-    .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
-    .send({
-      
-      "type":"private_note",
-      "body": `${globalConfig.messaging.drift.landingPage.internal.reported}`
+    request.post(`https://driftapi.com/conversations/${convoId}/messages`)
+      .set('Content-Type', 'application/json')
+      .set(`Authorization`, `bearer ${globalConfig.drift.oAuthAccessToken}`)
+      .send({
 
-    })
-    .catch(err => console.log(err))
+        "type": "private_note",
+        "body": `${globalConfig.messaging.drift.landingPage.internal.reported}`
+
+      })
+      .catch(err => console.log(err))
 
     res.send(`<!doctype html>
     <html lang="en">
@@ -546,20 +706,49 @@ app.get('/verifyMe/report/:convoId', function(req, res) {
     </div>
     </div>
     
+    <script>
+    if(${globalConfig.settings.loadDriftOnLandingPages}){
+      "use strict";
+
+      !function() {
+        var t = window.driftt = window.drift = window.driftt || [];
+        if (!t.init) {
+          if (t.invoked) return void (window.console && console.error && console.error("Drift snippet included twice."));
+          t.invoked = !0, t.methods = [ "identify", "config", "track", "reset", "debug", "show", "ping", "page", "hide", "off", "on" ], 
+          t.factory = function(e) {
+            return function() {
+              var n = Array.prototype.slice.call(arguments);
+              return n.unshift(e), t.push(n), t;
+            };
+          }, t.methods.forEach(function(e) {
+            t[e] = t.factory(e);
+          }), t.load = function(t) {
+            var e = 3e5, n = Math.ceil(new Date() / e) * e, o = document.createElement("script");
+            o.type = "text/javascript", o.async = !0, o.crossorigin = "anonymous", o.src = "https://js.driftt.com/include/" + n + "/" + t + ".js";
+            var i = document.getElementsByTagName("script")[0];
+            i.parentNode.insertBefore(o, i);
+          };
+        }
+      }();
+      drift.SNIPPET_VERSION = '${globalConfig.drift.SNIPPET_VERSION}';
+      drift.load('${globalConfig.drift.embedId}');
+    }
+
+    </script>
        
       </body>
       
     </html>`)
-  
+
   }
 
 
 })
 
-app.get('/verifyMe/:convoId', function(req, res) {
+app.get('/verifyMe/:convoId', function (req, res) {
 
-  if(!globalConfig.settings.useLandingPages){
-    
+  if (!globalConfig.settings.useLandingPages) {
+
     res.status(400).end()
     return
 
@@ -590,6 +779,35 @@ app.get('/verifyMe/:convoId', function(req, res) {
   </div>
   </div>
     
+    <script>
+    if(${globalConfig.settings.loadDriftOnLandingPages}){
+      "use strict";
+
+      !function() {
+        var t = window.driftt = window.drift = window.driftt || [];
+        if (!t.init) {
+          if (t.invoked) return void (window.console && console.error && console.error("Drift snippet included twice."));
+          t.invoked = !0, t.methods = [ "identify", "config", "track", "reset", "debug", "show", "ping", "page", "hide", "off", "on" ], 
+          t.factory = function(e) {
+            return function() {
+              var n = Array.prototype.slice.call(arguments);
+              return n.unshift(e), t.push(n), t;
+            };
+          }, t.methods.forEach(function(e) {
+            t[e] = t.factory(e);
+          }), t.load = function(t) {
+            var e = 3e5, n = Math.ceil(new Date() / e) * e, o = document.createElement("script");
+            o.type = "text/javascript", o.async = !0, o.crossorigin = "anonymous", o.src = "https://js.driftt.com/include/" + n + "/" + t + ".js";
+            var i = document.getElementsByTagName("script")[0];
+            i.parentNode.insertBefore(o, i);
+          };
+        }
+      }();
+      drift.SNIPPET_VERSION = '${globalConfig.drift.SNIPPET_VERSION}';
+      drift.load('${globalConfig.drift.embedId}');
+    }
+
+    </script>
      
     </body>
   </html>`)
@@ -597,12 +815,12 @@ app.get('/verifyMe/:convoId', function(req, res) {
 })
 
 // Scheduled job every 24-hours to clear stored conversation IDs
-const job = schedule.scheduleJob('15 0,4,8,12,16,20 * * *', function(){
+const job = schedule.scheduleJob('15 0,4,8,12,16,20 * * *', function () {
 
   verifiedConvoIds = []
   console.log("Verified Conversation IDs Cleared")
 
   reportedConvoIds = []
   console.log("Reported Conversation IDs Cleared")
-  
+
 });
