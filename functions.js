@@ -12,10 +12,37 @@ function tokens(value, tokenValues) {
 
 function build(emailName, globalConfig, emailDetails) {
 
+    var Tokens = [
+        {
+            "placeholder": "[EMAIL]",
+            "value": emailDetails.email
+        },
+        {
+            "placeholder": "[CONVOID]",
+            "value": emailDetails.convoId
+        },
+        {
+            "placeholder": "[CONFIRMLINK]",
+            "value": emailDetails.confirmLink
+        },
+        {
+            "placeholder": "[REPORTLINK]",
+            "value": emailDetails.reportLink
+        },
+        {
+            "placeholder": "[CODE]",
+            "value": emailDetails.code
+        },
+        {
+            "placeholder": "[RETURNURL]",
+            "value": emailDetails.returnUrl
+        }
+    ]
+
     if(emailName === "verifyWithLandingPage") {
         return { 
-            subject: `${globalConfig.messaging.email.landingPage.subject}`,
-            body: `<!DOCTYPE html>
+            subject: tokens(globalConfig.messaging.email.landingPage.subject, Tokens),
+            body: tokens(`<!DOCTYPE html>
         <html lang="en" dir="ltr" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" style="color-scheme:light dark;supported-color-schemes:light dark;">
         <head>
         <meta charset="utf-8">
@@ -51,13 +78,13 @@ function build(emailName, globalConfig, emailDetails) {
         </td></tr></table>
         <!--<![endif]--></table></div>
         </body>
-        </html>`}
+        </html>`,Tokens)}
     } else if (emailName === "verifyWithCode"){
         if(emailDetails.hasReturnUrl){
 
             return {
-                subject: `${globalConfig.messaging.email.code.subject.replace("[CODE]", emailDetails.code)}`,
-                body: `<!DOCTYPE html>
+                subject: tokens(globalConfig.messaging.email.code.subject, Tokens),
+                body: tokens(`<!DOCTYPE html>
             <html lang="en" dir="ltr" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" style="color-scheme:light dark;supported-color-schemes:light dark;">
             <head>
             <meta charset="utf-8">
@@ -93,7 +120,7 @@ function build(emailName, globalConfig, emailDetails) {
             </td></tr></table>
             <!--<![endif]--></table></div>
             </body>
-            </html>`}
+            </html>`, Tokens)}
 
         } else {
 
